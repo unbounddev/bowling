@@ -1,5 +1,5 @@
 import "./styles.css";
-import { Engine, Scene, HemisphericLight, Vector3, FreeCamera, UniversalCamera, LoadAssetContainerAsync, Mesh, MeshBuilder } from "@babylonjs/core";
+import { Engine, Scene, HemisphericLight, Vector3, Curve3, FreeCamera, UniversalCamera, LoadAssetContainerAsync, Mesh, MeshBuilder } from "@babylonjs/core";
 import "@babylonjs/loaders/glTF";
 
 const METER_TO_INCH = 100/2.54;
@@ -7,12 +7,22 @@ const inchesToMeters = (inches) => inches * 0.0254;
 const rad = (deg) => deg * (Math.PI/180);
 const xTranslation = (distance, angle) => inchesToMeters(distance) * Math.cos(rad(angle));
 const zTranslation = (distance, angle) => inchesToMeters(distance) * Math.sin(rad(angle)); 
+const GUTTER_WIDTH = inchesToMeters(9.25);
+const GUTTER_DEPTH = inchesToMeters(1.875);
+const GUTTER_OFFSET = inchesToMeters(0.5);
+const TOTAL_LANE_LENGTH = 19.16;
+const LANE_WIDTH = inchesToMeters(41.5);
+const LANE_LENGTH = inchesToMeters(60*12);
+const PIN_DECK_LENGTH = TOTAL_LANE_LENGTH - LANE_LENGTH;
+const APPROACH_LENGTH = inchesToMeters(15*12);
+const LANE_DEPTH = GUTTER_DEPTH + GUTTER_OFFSET;
 // pin adjacent distance 12in at 60 degrees
 // angled distance to translation
 // x => distance * cos(angle)
 // y => distance * sin(angle)
 
 const canvas = document.getElementById("renderCanvas");
+/** @type {Engine} */
 const engine = new Engine(canvas, true);
 
 async function loadModel(scene, modelName){
@@ -30,27 +40,56 @@ class BowlingScene extends Scene {
   async create(){
     
     const light = new HemisphericLight("light", new Vector3(1, 1, 0), this); 
-    const camera = new UniversalCamera("camera", new Vector3(0, 2, -19.16/2-3), this);
+    // const camera = new UniversalCamera("camera", new Vector3(2, 2, 0), this);
+    const camera = new UniversalCamera("camera", new Vector3(0, 1, -19.16-2), this);
     camera.setTarget(Vector3.Zero());
     await this.createPins(); 
     await this.createLane();
+    await this.createGutters();
     return this;
   }
 
   async createLane(){
-    const LANE_WIDTH = inchesToMeters(41.5);
-    const TOTAL_LANE_LENGTH = 19.16;
-    const LANE_LENGTH = inchesToMeters(60*12);
-    const PIN_DECK_LENGTH = TOTAL_LANE_LENGTH - LANE_LENGTH;
-    const APPROACH_LENGTH = inchesToMeters(15*12);
-    const GUTTER_WIDTH = inchesToMeters(9.25);
-    const GUTTER_DEPTH = inchesToMeters(1.875);
 
     const lane = MeshBuilder.CreateBox("lane", {
       width: LANE_WIDTH,
-      height: GUTTER_DEPTH,
+      height: LANE_DEPTH,
       depth: LANE_LENGTH
     }, this);
+    lane.position = new Vector3(0, -(LANE_DEPTH/2), -(LANE_LENGTH/2));
+    const pin_deck = MeshBuilder.CreateBox("pin_deck", {
+      width: LANE_WIDTH,
+      height: LANE_DEPTH,
+      depth: PIN_DECK_LENGTH
+    }, this);
+    pin_deck.position = new Vector3(0, -(LANE_DEPTH/2), PIN_DECK_LENGTH/2);
+  }
+
+  async createGutters(){
+    const curvePoints = [
+      new Vector3(-(GUTTER_WIDTH/2), GUTTER_DEPTH/2, 0),
+      new Vector3(0, -(GUTTER_DEPTH/2), 0),
+      new Vector3(GUTTER_WIDTH/2, GUTTER_DEPTH/2, 0),
+    ];
+    const curve = Curve3.ArcThru3Points(...curvePoints, 32, false, false);
+    const points = curve.getPoints();
+    const profile = [
+      ...points,
+      new Vector3(points.at(-1).x, -points.at(-1).y, 0),
+      new Vector3(points[0].x, -points[0].y, 0),
+      points[0]
+    ];
+    
+    const gutter = MeshBuilder.ExtrudeShape("gutter", {
+      shape: profile,
+      path: [new Vector3(0, 0, -(TOTAL_LANE_LENGTH/2)), new Vector3(0, 0, TOTAL_LANE_LENGTH/2)],
+      // cap: Mesh.CAP_ALL,
+      sideOrientation: Mesh.DOUBLESIDE
+    }, this);
+    gutter.position = new Vector3(LANE_WIDTH/2+GUTTER_WIDTH/2, -(GUTTER_DEPTH/2)-GUTTER_OFFSET, -(TOTAL_LANE_LENGTH/2)+(PIN_DECK_LENGTH));
+
+    const gutter2 = gutter.createInstance("gutter2");
+    gutter.position = new Vector3(-(LANE_WIDTH/2+GUTTER_WIDTH/2), -(GUTTER_DEPTH/2)-GUTTER_OFFSET, -(TOTAL_LANE_LENGTH/2)+(PIN_DECK_LENGTH));
   }
 
   async createPins(){
