@@ -1,10 +1,12 @@
 import "./styles.css";
-import { Engine, Scene, HemisphericLight, Vector3, FreeCamera, UniversalCamera, LoadAssetContainerAsync } from "@babylonjs/core";
+import { Engine, Scene, HemisphericLight, Vector3, FreeCamera, UniversalCamera, LoadAssetContainerAsync, Mesh } from "@babylonjs/core";
 import "@babylonjs/loaders/glTF";
 
 const METER_TO_INCH = 100/2.54;
-const inchToMeter = (inches) => inches * 0.0254;
+const inchesToMeters = (inches) => inches * 0.0254;
 const rad = (deg) => deg * (Math.PI/180);
+const xTranslation = (distance, angle) => inchesToMeters(distance) * Math.cos(rad(angle));
+const zTranslation = (distance, angle) => inchesToMeters(distance) * Math.sin(rad(angle)); 
 // pin adjacent distance 12in at 60 degrees
 // angled distance to translation
 // x => distance * cos(angle)
@@ -28,16 +30,51 @@ class BowlingScene extends Scene {
   async create(){
     
     const light = new HemisphericLight("light", new Vector3(1, 1, 0), this); 
-    const camera = new UniversalCamera("camera", new Vector3(0, 1, -1), this);
+    const camera = new UniversalCamera("camera", new Vector3(0, 2, -2), this);
     camera.setTarget(Vector3.Zero());
-    const pins = [];
-    const pinLocations = [];
-    const pin = await loadModel(this, "Pin_High_Poly.glb");
-    for (let i = 0; i < 10; i++){
-      pins.push(...pin.instantiateModelsToScene().rootNodes);
-    }
-    
+    await this.createPins(); 
     return this;
+  }
+
+  async createPins(){
+    const pins = [];
+    const startingLocation = Vector3.Zero();
+    const pinLocations = [
+      Vector3.Zero(), 
+      new Vector3(xTranslation(12, 120),0,zTranslation(12, 120)),
+      new Vector3(xTranslation(12, 60),0,zTranslation(12, 60)),
+      new Vector3(xTranslation(12, 120),0,zTranslation(12, 120)),
+      new Vector3(xTranslation(12, 60),0,zTranslation(12, 60)),
+      new Vector3(xTranslation(12, 60),0,zTranslation(12, 60)),
+      new Vector3(xTranslation(12, 120),0,zTranslation(12, 120)),
+      new Vector3(xTranslation(12, 60),0,zTranslation(12, 60)),
+      new Vector3(xTranslation(12, 60),0,zTranslation(12, 60)),
+      new Vector3(xTranslation(12, 60),0,zTranslation(12, 60)),
+    ];
+    const pin = await loadModel(this, "Pin_High_Poly.glb");
+    /** @type {Mesh} **/
+    const pin1 = pin.instantiateModelsToScene().rootNodes[0];
+    pin1.position = startingLocation.add(pinLocations[0]);
+    const pin2 = pin.instantiateModelsToScene().rootNodes[0];
+    pin2.position = pin1.position.add(pinLocations[1]);
+    const pin3 = pin.instantiateModelsToScene().rootNodes[0];
+    pin3.position = pin1.position.add(pinLocations[2]);
+    const pin4 = pin.instantiateModelsToScene().rootNodes[0];
+    pin4.position = pin2.position.add(pinLocations[3]);
+    const pin5 = pin.instantiateModelsToScene().rootNodes[0];
+    pin5.position = pin2.position.add(pinLocations[4]);
+    const pin6 = pin.instantiateModelsToScene().rootNodes[0];
+    pin6.position = pin3.position.add(pinLocations[5]);
+    const pin7 = pin.instantiateModelsToScene().rootNodes[0];
+    pin7.position = pin4.position.add(pinLocations[6]);
+    const pin8 = pin.instantiateModelsToScene().rootNodes[0];
+    pin8.position = pin4.position.add(pinLocations[7]);
+    const pin9 = pin.instantiateModelsToScene().rootNodes[0];
+    pin9.position = pin5.position.add(pinLocations[8]);
+    const pin10 = pin.instantiateModelsToScene().rootNodes[0];
+    pin10.position = pin6.position.add(pinLocations[9]);
+    
+
   }
 }
 
