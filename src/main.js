@@ -1,5 +1,5 @@
 import "./styles.css";
-import { Engine, Scene, HemisphericLight, Vector3, FreeCamera, UniversalCamera, LoadAssetContainerAsync, Mesh } from "@babylonjs/core";
+import { Engine, Scene, HemisphericLight, Vector3, FreeCamera, UniversalCamera, LoadAssetContainerAsync, Mesh, MeshBuilder } from "@babylonjs/core";
 import "@babylonjs/loaders/glTF";
 
 const METER_TO_INCH = 100/2.54;
@@ -30,10 +30,27 @@ class BowlingScene extends Scene {
   async create(){
     
     const light = new HemisphericLight("light", new Vector3(1, 1, 0), this); 
-    const camera = new UniversalCamera("camera", new Vector3(0, 2, -2), this);
+    const camera = new UniversalCamera("camera", new Vector3(0, 2, -19.16/2-3), this);
     camera.setTarget(Vector3.Zero());
     await this.createPins(); 
+    await this.createLane();
     return this;
+  }
+
+  async createLane(){
+    const LANE_WIDTH = inchesToMeters(41.5);
+    const TOTAL_LANE_LENGTH = 19.16;
+    const LANE_LENGTH = inchesToMeters(60*12);
+    const PIN_DECK_LENGTH = TOTAL_LANE_LENGTH - LANE_LENGTH;
+    const APPROACH_LENGTH = inchesToMeters(15*12);
+    const GUTTER_WIDTH = inchesToMeters(9.25);
+    const GUTTER_DEPTH = inchesToMeters(1.875);
+
+    const lane = MeshBuilder.CreateBox("lane", {
+      width: LANE_WIDTH,
+      height: GUTTER_DEPTH,
+      depth: LANE_LENGTH
+    }, this);
   }
 
   async createPins(){
